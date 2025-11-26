@@ -9,7 +9,7 @@
 <p align="center">
   <img src="demo_screenshot.png" alt="Focus Tracker Demo" width="800">
 </p>
-![unnamed (1)](https://github.com/user-attachments/assets/5ed3231e-b95d-4c30-aff4-fd9e93d4820b)
+
 
 ## 📌 Project Overview
 
