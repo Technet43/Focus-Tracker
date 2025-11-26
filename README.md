@@ -1,242 +1,187 @@
-# 🎯 Focus Tracker v4.0
+# 🎯 Ultra AI Focus Tracker v4.0
 
-**AI-Powered Focus Analysis with Real-Time Monitoring**
-
-An intelligent focus tracking application that uses computer vision and MediaPipe to monitor your attention levels during work or study sessions. Features a modern Apple-inspired UI and generates comprehensive session reports.
-
----
-
-## ✨ Features
-
-### Real-Time Focus Detection
-- **Gaze Tracking** — Monitors eye position and iris movement to detect where you're looking
-- **Head Pose Estimation** — Analyzes head orientation (yaw, pitch, roll) using 3D face landmarks
-- **Eye Aspect Ratio (EAR)** — Detects blinks, eye closure, and drowsiness
-- **Liveness Detection** — Identifies if a static image is being used instead of a live face
-
-### Smart Analytics
-- **Weighted Focus Score** — Combines gaze (48%), eye openness (47%), and head pose (5%) for accurate assessment
-- **State Classification** — Categorizes focus into High Focus, Low Focus, and No Focus states
-- **Hysteresis Thresholds** — Prevents flickering between states with intelligent smoothing
-- **Distraction & Yawn Detection** — Tracks behavioral events that impact productivity
-
-### Modern UI Design
-- Apple-inspired dark glassmorphism interface
-- Real-time focus score display with progress ring
-- Live mini sparkline chart showing score history
-- Color-coded status pills (green/orange/red)
-- Metric breakdown panels for gaze, head pose, and eye tracking
-
-### Comprehensive Reports
-- **PDF & PNG Export** — Automatically saved to Downloads folder
-- **Session Statistics** — Total time, focus percentages, event counts
-- **Score Timeline Graph** — Visualizes focus fluctuations over time
-- **State Distribution Chart** — Shows time spent in each focus state
-- **Final Grade** — A+ to F rating based on overall performance
+AI-powered focus tracking desktop app with **gaze detection**, **head pose estimation**, **eye-openness / yawn analysis**, and an **Apple-inspired modern UI**.  
+At the end of every session, it automatically generates a clean **PDF + PNG productivity report** in your Downloads folder.
 
 ---
 
-## 🛠 Requirements
+## ✨ Overview
 
-### Python Version
-- Python 3.8 or higher
+Ultra AI Focus Tracker turns your webcam into a **real-time focus monitor**.
 
-### Dependencies
-```
-opencv-python
-mediapipe
-numpy
-matplotlib
-```
+During a session it analyses:
 
-### Installation
+- Where you look (gaze & iris position)
+- How open your eyes are (blink / drowsiness)
+- Head orientation (yaw–pitch–roll)
+- Yawns
+- Distraction events and phone-check patterns
+- Overall focus state over time
+
+At the end it summarizes everything as:
+
+- A **final focus score** (0–100)
+- A **letter grade** (A+ / A / B / …)
+- A detailed visual **timeline report**
+
+The project was built as a **personal productivity tool** and as a **portfolio project** for internships.
+
+---
+
+## 🧠 Key Features
+
+### 1. Real-time Focus Analysis
+
+- Face tracking with **MediaPipe Face Mesh**
+- Gaze scoring based on iris position inside the eye region
+- Eye Aspect Ratio (EAR) for blink / eye-closure detection
+- Mouth Aspect Ratio (MAR) for yawn detection
+- Head pose estimation (3D model → yaw, pitch, roll)
+- Liveness check (detects “no movement” / static face)
+
+### 2. Intelligent Focus Scoring
+
+The app combines three main metrics:
+
+- Gaze score  
+- Head pose score  
+- Eye-openness score  
+
+into a single focus value:
+
+\[
+\text{focus\_score} = 0.48 \cdot \text{gaze} + 0.05 \cdot \text{head} + 0.47 \cdot \text{eyes}
+\]
+
+Then it:
+
+- Smooths state transitions using a **state buffer**
+- Classifies each moment as:
+  - `high_focus`
+  - `low_focus`
+  - `no_focus / away`
+- Counts **distraction events** and **phone-checks** based on pose and gaze
+- Applies penalties for yawns and distractions when computing the final session score
+
+### 3. Apple-Inspired Modern UI
+
+Custom-drawn UI using OpenCV:
+
+- Glassmorphism-style panels
+- Rounded cards and focus “pills”
+- Live mini chart (sparkline) of the focus score
+- Per-metric progress bars (Gaze / Head Pose / Eyes)
+- Session stats panel showing:
+  - High / Low / Away times (seconds)
+  - Distractions
+  - Yawns
+- Center-bottom hint overlay: `Press Q to quit and save report`
+
+### 4. Automatic Session Report
+
+When you press **Q** to end a session, the app creates a report in your **Downloads** folder:
+
+- `FocusTracker_Report_YYYY-MM-DD_HH-MM-SS.png`
+- `FocusTracker_Report_YYYY-MM-DD_HH-MM-SS.pdf`
+
+The report includes:
+
+- Final focus score + letter grade
+- Session duration
+- Average focus score
+- Percentage of time in High / Low / Away
+- Distraction and yawn counts
+- Focus score over time (line chart)
+- Gaze vs head-pose sub-metric charts
+- Color-coded focus-state timeline
+
+---
+
+## 🛠 Tech Stack
+
+- **Language:** Python  
+- **Computer Vision:** OpenCV, MediaPipe Face Mesh  
+- **Math / Data:** NumPy  
+- **Visualization & Reports:** Matplotlib, PdfPages  
+- **Desktop UI:** Tkinter (modern start dialog)  
+- **OS Integration:** Downloads folder detection for Windows / macOS / Linux  
+
+---
+
+## 📦 Installation
+
+1. Clone the repository:
 
 ```bash
-# Clone or download the repository
-git clone https://github.com/yourusername/focus-tracker.git
-cd focus-tracker
+git clone https://github.com/<your-username>/Focus-Tracker.git
+cd Focus-Tracker
+(Optional) Create and activate a virtual environment.
 
-# Install dependencies
-pip install opencv-python mediapipe numpy matplotlib
+Install dependencies:
 
-# Run the application
+bash
+Copy code
+pip install opencv-python mediapipe matplotlib numpy
+Tkinter is usually included with standard Python distributions.
+If it is missing, install it via your OS package manager (for example on Ubuntu):
+
+bash
+Copy code
+sudo apt install python3-tk
+▶️ Usage
+Run the main script:
+
+bash
+Copy code
 python Focus_Tracker_Beta.py
-```
+Typical workflow:
 
----
+A modern start dialog opens.
 
-## 🚀 Usage
+Click “Start Session” (or press Enter).
 
-### Starting a Session
+The camera window appears and shows:
 
-1. Run the script — a modern start dialog will appear
-2. Click **Start Session** or press **Enter**
-3. Position yourself in front of the camera
-4. The app will calibrate for 2 seconds (stay still and look at center)
-5. Begin your work session
+Live focus score
 
-### During the Session
+Gaze / Head / Eyes metrics
 
-| Indicator | Meaning |
-|-----------|---------|
-| 🟢 **HIGH FOCUS** | Score ≥80% — Excellent attention |
-| 🟠 **LOW FOCUS** | Score 30-79% — Partial attention |
-| 🔴 **NO FOCUS** | Score <30% — Distracted or away |
+Mini focus chart
 
-### Ending a Session
+Session stats (High / Low / Away / Distractions / Yawns)
 
-- Press **Q** to quit and generate reports
-- Reports are automatically saved to your Downloads folder
-- A summary dialog shows your final score and grade
+When you are done, press Q.
 
----
+A PNG + PDF report is generated in your Downloads folder.
 
-## 📊 How Scoring Works
+A popup displays your final score and grade.
 
-### Focus Score Calculation
+🧩 Project Structure
+text
+Copy code
+Focus_Tracker_Beta.py   # Main script: UI, tracking, scoring, reporting
+In the future this can be split into modules (e.g. ui.py, metrics.py, report.py) if the project grows.
 
-```
-Total Score = (Gaze Score × 0.48) + (Eye Score × 0.47) + (Head Score × 0.05)
-```
+🚀 Possible Future Improvements
+Export raw time-series data as CSV
 
-### Gaze Score
-- Measures iris position relative to eye boundaries
-- 100% when looking directly at screen center
-- Decreases as gaze moves toward periphery
+Multi-session dashboard to compare days / weeks
 
-### Eye Openness Score
-- Based on Eye Aspect Ratio (EAR)
-- EAR ≤ 0.12 → 0% (eyes closed)
-- EAR ≥ 0.28 → 100% (eyes fully open)
-- Linear interpolation between thresholds
+User-customizable thresholds and sensitivity
 
-### Head Pose Score
-- Penalizes head rotation away from neutral position
-- Yaw (left/right): Max 45° tolerance
-- Pitch (up/down): Max 35° tolerance
-- Roll (tilt): Max 30° tolerance
+Light/Dark theme toggle in the live UI
 
-### Final Score Formula
+Packaging as a standalone desktop app (PyInstaller)
 
-```
-Final = (Avg Score × 0.85) + (High Focus % × 0.15) - Penalties
-```
+📄 License
+This project is licensed under the MIT License.
+See the LICENSE file for more details.
 
-Penalties are applied for distractions and yawns, normalized by session duration.
+👤 Author
+Ömer Burak
 
----
+GitHub: @<your-username>
 
-## 📁 Output Files
+LinkedIn: <your LinkedIn profile URL>
 
-Reports are saved to your system's Downloads folder:
-
-```
-FocusTracker_Report_2024-01-15_14-30-22.png
-FocusTracker_Report_2024-01-15_14-30-22.pdf
-```
-
-### Report Contents
-
-- **Final Focus Score** with progress bar
-- **Session Statistics** (duration, averages, percentages)
-- **Focus Score Timeline** graph
-- **State Distribution** visualization
-- **Grade** (A+, A, B, C, D, F)
-
----
-
-## ⚙️ Configuration
-
-Key parameters can be adjusted in the source code:
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `SMOOTHING_WINDOW` | 15 | Frames for state smoothing |
-| `STATE_CHANGE_THRESHOLD` | 0.75 | Minimum ratio to change state |
-| `GAZE_WEIGHT` | 0.48 | Weight of gaze in total score |
-| `EYE_WEIGHT` | 0.47 | Weight of eye openness |
-| `HEAD_WEIGHT` | 0.05 | Weight of head pose |
-| `LIVENESS_TIMEOUT` | 25.0s | Time before "no movement" warning |
-| `YAWN_COOLDOWN` | 1.5s | Minimum time between yawn detections |
-
----
-
-## 🔧 Troubleshooting
-
-### Camera Not Found
-```
-ERROR: Camera could not be opened!
-```
-- Check if another application is using the camera
-- Verify camera permissions in system settings
-- Try unplugging and reconnecting USB webcams
-
-### Low Frame Rate
-- Close other resource-intensive applications
-- Ensure adequate lighting for face detection
-- Consider lowering camera resolution
-
-### Inconsistent Tracking
-- Maintain consistent lighting (avoid backlighting)
-- Keep face clearly visible to camera
-- Stay within 30-80cm of the camera
-
----
-
-## 🎨 UI Color Palette
-
-The interface uses an Apple-inspired color scheme:
-
-| Color | Hex | Usage |
-|-------|-----|-------|
-| iOS Blue | `#007AFF` | Primary accent, focus ring |
-| iOS Green | `#34C759` | High focus state |
-| iOS Orange | `#FF9500` | Low focus state |
-| iOS Red | `#FF3B30` | No focus state |
-| iOS Purple | `#AF52DE` | Eye metrics |
-| iOS Cyan | `#5AC8FA` | Gaze metrics |
-
----
-
-## 📋 Grading Scale
-
-| Grade | Score Range | Description |
-|-------|-------------|-------------|
-| A+ | 90-100 | Exceptional focus |
-| A | 80-89 | Excellent focus |
-| B | 70-79 | Good focus |
-| C | 60-69 | Average focus |
-| D | 50-59 | Below average |
-| F | 0-49 | Poor focus |
-
----
-
-## 🔮 Future Improvements
-
-- [ ] Custom calibration profiles
-- [ ] Multiple session history tracking
-- [ ] Focus patterns and trends analysis
-- [ ] Pomodoro timer integration
-- [ ] Sound/notification alerts
-- [ ] Export to CSV/JSON formats
-- [ ] Multi-monitor support
-
----
-
-## 📄 License
-
-This project is open source and available under the MIT License.
-
----
-
-## 🙏 Acknowledgments
-
-- **MediaPipe** by Google for face mesh detection
-- **OpenCV** for computer vision operations
-- **Matplotlib** for report generation
-
----
-
-<p align="center">
-  <b>Built with ❤️ for productivity enthusiasts</b>
-</p>
+If you find this project useful, consider giving it a ⭐ on GitHub!
