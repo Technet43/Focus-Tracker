@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus Tracker - AI-Powered Focus Analysis</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f7;
+            --text-primary: #1d1d1f;
+            --text-secondary: #86868b;
+            --accent-blue: #0071e3;
+            --accent-blue-hover: #0077ed;
+            --border-color: #d2d2d7;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 0 24px;
+            height: 48px;
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            background: rgba(255, 255, 255, 0.8);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-content {
+            max-width: 1024px;
+            margin: 0 auto;
+            height: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .logo-icon {
+            font-size: 20px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 28px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 400;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent-blue);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 140px 24px 80px;
+            text-align: center;
+            max-width: 1024px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 56px;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            margin-bottom: 16px;
+        }
+
+        .hero-subtitle {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .hero-description {
+            font-size: 17px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 32px;
+            line-height: 1.6;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 980px;
+            font-size: 17px;
+            font-weight: 400;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-blue-hover);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--accent-blue);
+        }
+
+        .btn-secondary:hover {
+            text-decoration: underline;
+        }
+
+        .hero-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Screenshot Section */
+        .screenshot-section {
+            padding: 40px 24px 100px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .screenshot-container {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+            background: #1a1a1a;
+        }
+
+        .screenshot-container img {
+            width: 100%;
+            display: block;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 100px 24px;
+            background: var(--bg-secondary);
+        }
+
+        .features-content {
+            max-width: 1024px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-title {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+        }
+
+        .section-subtitle {
+            font-size: 21px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .feature-card {
+            background: var(--bg-primary);
+            border-radius: 20px;
+            padding: 40px 32px;
+            text-align: center;
+        }
+
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            font-size: 21px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .feature-card p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* How It Works */
+        .how-it-works {
+            padding: 100px 24px;
+            max-width: 1024px;
+            margin: 0 auto;
+        }
+
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 32px;
+            margin-top: 60px;
+        }
+
+        .step {
+            text-align: center;
+        }
+
+        .step-number {
+            width: 48px;
+            height: 48px;
+            background: var(--text-primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 21px;
+            font-weight: 600;
+            margin: 0 auto 16px;
+        }
+
+        .step h3 {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .step p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Gallery Section */
+        .gallery-section {
+            padding: 100px 24px;
+            background: var(--bg-secondary);
+        }
+
+        .gallery-content {
+            max-width: 1024px;
+            margin: 0 auto;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 48px;
+        }
+
+        .gallery-item {
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--border-color);
+            background: #1a1a1a;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            display: block;
+        }
+
+        .gallery-item.full-width {
+            grid-column: span 2;
+            background: white;
+        }
+
+        /* Tech Section */
+        .tech-section {
+            padding: 80px 24px;
+            text-align: center;
+        }
+
+        .tech-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .tech-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+
+        .tech-badges {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .tech-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border-radius: 980px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* CTA Section */
+        .cta {
+            padding: 100px 24px;
+            text-align: center;
+            background: var(--bg-primary);
+        }
+
+        .cta-content {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .cta h2 {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 16px;
+        }
+
+        .cta p {
+            font-size: 21px;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+
+        /* Footer */
+        footer {
+            padding: 20px 24px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+        }
+
+        .footer-content {
+            max-width: 1024px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .footer-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .footer-credit {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .footer-credit a {
+            color: var(--text-secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 40px;
+            }
+
+            .hero-subtitle {
+                font-size: 21px;
+            }
+
+            .section-title {
+                font-size: 32px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .steps {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .gallery-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .gallery-item.full-width {
+                grid-column: span 1;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-content">
+            <a href="#" class="logo">
+                <span class="logo-icon">🎯</span>
+                <span>Focus Tracker</span>
+            </a>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="https://github.com/Technet43/Focus-Tracker" target="_blank">GitHub</a>
+                <a href="https://github.com/Technet43/Focus-Tracker/releases/download/v1.0.0/Focus.Tracker.exe" style="color: var(--accent-blue);">Download</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1>Focus Tracker</h1>
+        <p class="hero-subtitle">AI-Powered Focus Analysis</p>
+        <p class="hero-description">
+            Track your attention in real-time using computer vision. Understand your focus patterns and boost your productivity with detailed analytics.
+        </p>
+        <div class="hero-buttons">
+            <a href="https://github.com/Technet43/Focus-Tracker/releases/download/v1.0.0/Focus.Tracker.exe" class="btn btn-primary">
+                Download for Windows
+            </a>
+            <a href="https://github.com/Technet43/Focus-Tracker" target="_blank" class="btn btn-secondary">
+                View on GitHub →
+            </a>
+        </div>
+        <p class="hero-meta">Free • 128 MB • Windows 10/11 • No installation required</p>
+    </section>
+
+    <!-- Screenshot Section -->
+    <section class="screenshot-section">
+        <div class="screenshot-container">
+            <img src="https://raw.githubusercontent.com/Technet43/Focus-Tracker/refs/heads/main/Focus%20Tracker%20Photos/Person_1.jpg" alt="Focus Tracker Application">
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="features-content">
+            <div class="section-header">
+                <h2 class="section-title">Stay in the zone.</h2>
+                <p class="section-subtitle">Powerful features to help you understand and improve your focus.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">👁️</div>
+                    <h3>Eye Tracking</h3>
+                    <p>Advanced gaze analysis using 468 facial landmarks for precise attention detection.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Privacy First</h3>
+                    <p>All processing happens locally. No images are recorded or uploaded.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Detailed Reports</h3>
+                    <p>Generate PDF reports with timelines, scores, and performance grades.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Real-Time</h3>
+                    <p>Instant feedback at 30+ FPS. See your focus score update live.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🧠</div>
+                    <h3>Smart Detection</h3>
+                    <p>Multi-modal scoring combines gaze, head pose, and eye openness.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📦</div>
+                    <h3>Portable</h3>
+                    <p>No installation needed. Download and run immediately.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="section-header">
+            <h2 class="section-title">How it works.</h2>
+            <p class="section-subtitle">Get started in seconds.</p>
+        </div>
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Download</h3>
+                <p>Get the portable executable file.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>Launch</h3>
+                <p>Double-click to open. Press Enter to start.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>Work</h3>
+                <p>Focus on your task while tracking runs.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <h3>Review</h3>
+                <p>Press Q to get your detailed report.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section class="gallery-section">
+        <div class="gallery-content">
+            <div class="section-header">
+                <h2 class="section-title">See it in action.</h2>
+                <p class="section-subtitle">Real-time tracking with comprehensive analytics.</p>
+            </div>
+            <div class="gallery-grid">
+                <div class="gallery-item">
+                    <img src="https://raw.githubusercontent.com/Technet43/Focus-Tracker/refs/heads/main/Focus%20Tracker%20Photos/Person_2.jpg" alt="Focus Tracking Demo">
+                </div>
+
+                <div class="gallery-item full-width">
+                    <img src="https://github.com/Technet43/Focus-Tracker/blob/main/Focus%20Tracker%20Photos/Report_2.jpg?raw=true" alt="Session Report">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tech Section -->
+    <section class="tech-section">
+        <div class="tech-content">
+            <p class="tech-label">Built With</p>
+            <div class="tech-badges">
+                <span class="tech-badge">🐍 Python</span>
+                <span class="tech-badge">👁️ OpenCV</span>
+                <span class="tech-badge">🤖 MediaPipe</span>
+                <span class="tech-badge">📊 Matplotlib</span>
+                <span class="tech-badge">🔢 NumPy</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="cta-content">
+            <h2>Ready to focus?</h2>
+            <p>Download Focus Tracker and start understanding your attention patterns today.</p>
+            <a href="https://github.com/Technet43/Focus-Tracker/releases/download/v1.0.0/Focus.Tracker.exe" class="btn btn-primary">
+                Download Free
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="https://github.com/Technet43/Focus-Tracker" target="_blank">GitHub</a>
+                <a href="https://github.com/Technet43/Focus-Tracker/issues" target="_blank">Report Issue</a>
+                <a href="https://github.com/Technet43/Focus-Tracker/blob/main/LICENSE" target="_blank">MIT License</a>
+            </div>
+            <p class="footer-credit">
+                Made by <a href="https://github.com/Technet43" target="_blank">Burak</a>
+            </p>
+        </div>
+    </footer>
+</body>
+</html>
