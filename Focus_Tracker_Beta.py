@@ -479,12 +479,14 @@ def run_focus_tracker():
     # Time-series data for charts
     score_history = deque(maxlen=100)
 
-    # Time-series data for report
-    timeline = []
-    score_timeline = []
-    state_timeline = []
-    gaze_timeline = []
-    head_timeline = []
+    # Time-series data for report (LIMITED to prevent memory leaks in long sessions)
+    # Max 2 hours at 2 samples/sec = 14400 points (safe for matplotlib rendering)
+    MAX_TIMELINE_LENGTH = 14400
+    timeline = deque(maxlen=MAX_TIMELINE_LENGTH)
+    score_timeline = deque(maxlen=MAX_TIMELINE_LENGTH)
+    state_timeline = deque(maxlen=MAX_TIMELINE_LENGTH)
+    gaze_timeline = deque(maxlen=MAX_TIMELINE_LENGTH)
+    head_timeline = deque(maxlen=MAX_TIMELINE_LENGTH)
 
     # Counters
     blink_count = 0
@@ -533,6 +535,11 @@ def run_focus_tracker():
 
     last_time = time.time()
     frame_count = 0
+
+    # Cache window dimensions to reduce getWindowImageRect calls
+    cached_screen_w, cached_screen_h = 0, 0
+    last_resize_check = time.time()
+    RESIZE_CHECK_INTERVAL = 0.5  # Check window size every 0.5 seconds
 
     # Helper functions (same as before)
     def calculate_distance(p1, p2):
@@ -1011,6 +1018,9 @@ def run_focus_tracker():
             pdf.savefig(fig, bbox_inches="tight", facecolor=white)
         print(f"✓ PDF saved: {pdf_path}")
 
+        # Close figure to free memory
+        plt.close(fig)
+
         return png_path, pdf_path
 
     # Main loop
@@ -1037,11 +1047,18 @@ def run_focus_tracker():
             rgb_raw = cv2.cvtColor(frame_raw, cv2.COLOR_BGR2RGB)
             results = face_mesh.process(rgb_raw)
 
-            # Resize for display
+            # Resize for display (cached to reduce overhead)
             frame = frame_raw.copy()
-            (_, _, screen_w, screen_h) = cv2.getWindowImageRect(WINDOW_NAME)
-            if screen_w > 0 and screen_h > 0:
-                frame = cv2.resize(frame, (screen_w, screen_h))
+
+            # Only check window size periodically to reduce overhead
+            if current_time - last_resize_check > RESIZE_CHECK_INTERVAL:
+                (_, _, screen_w, screen_h) = cv2.getWindowImageRect(WINDOW_NAME)
+                if screen_w > 0 and screen_h > 0:
+                    cached_screen_w, cached_screen_h = screen_w, screen_h
+                last_resize_check = current_time
+
+            if cached_screen_w > 0 and cached_screen_h > 0:
+                frame = cv2.resize(frame, (cached_screen_w, cached_screen_h))
             h, w = frame.shape[:2]
             sx, sy = w / w0, h / h0
 
@@ -1102,6 +1119,10 @@ def run_focus_tracker():
                         neutral_pitch = float(np.median(calib_pitch))
                         neutral_roll = float(np.median(calib_roll))
                         calibrated = True
+                        # Clear calibration data to free memory
+                        calib_yaw.clear()
+                        calib_pitch.clear()
+                        calib_roll.clear()
                         print("✓ Calibration complete")
 
                     # Kalibrasyon bitene kadar corrected açıları 0 say
@@ -1395,7 +1416,8 @@ def run_focus_tracker():
     print(f"     • {os.path.basename(pdf_path)}")
     print("=" * 60)
 
-    plt.show()
+    # plt.show() removed to prevent memory retention
+    # Report is already saved as PDF and PNG
 
     messagebox.showinfo(
         "Session Complete",
