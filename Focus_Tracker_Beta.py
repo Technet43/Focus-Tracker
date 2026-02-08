@@ -394,25 +394,20 @@ def draw_activity_badge(img, center, activity_mode, confidence):
     """Draw activity mode indicator badge"""
     cx, cy = center
 
-    # Pick icon, color, and text based on activity
+    # Pick color and text based on activity (NO EMOJIS - OpenCV doesn't support them)
     if activity_mode == "WRITING_MODE":
-        icon = "📝"
         text = "Writing"
         bg_color = COLORS_BGR['accent_purple']
     elif activity_mode == "READING_MODE":
-        icon = "📖"
         text = "Reading"
         bg_color = COLORS_BGR['accent_cyan']
     elif activity_mode == "PHONE_CHECK":
-        icon = "📱"
         text = "Phone"
         bg_color = COLORS_BGR['accent_orange']
     elif activity_mode == "SCREEN_FOCUS":
-        icon = "💻"
         text = "Screen"
         bg_color = COLORS_BGR['accent_blue']
     else:
-        icon = "👀"
         text = "Focus"
         bg_color = COLORS_BGR['text_tertiary']
 
@@ -421,8 +416,8 @@ def draw_activity_badge(img, center, activity_mode, confidence):
     font_scale = 0.45
     thickness = 1
 
-    # Combined text with icon
-    display_text = f"{icon} {text}"
+    # Display text (no emojis)
+    display_text = text
     (text_w, text_h), _ = cv2.getTextSize(display_text, font, font_scale, thickness)
 
     # Compact padding
@@ -816,7 +811,8 @@ def run_focus_tracker():
         max_penalty = max(yaw_penalty, pitch_penalty, roll_penalty)
 
         score = 100.0 - max_penalty
-        return float(np.clip(score, 0, 100))
+        # CRITICAL FIX: Never allow 0% head score - minimum 20%
+        return float(np.clip(score, 20, 100))
 
     def analyze_focus(gaze_left, gaze_right, head_score, ear_avg, yaw, pitch, roll):
         warnings = []
@@ -846,16 +842,24 @@ def run_focus_tracker():
         if ear_avg < 0.13:
             warnings.append("Eyes closing")
 
-        # --- Pitch rule ---
-        forced_no_focus = False
-        if pitch < -45:
-            forced_no_focus = True
-        elif pitch < -35 and gaze_avg < 40:
-            forced_no_focus = True
-        elif pitch > 15:
-            forced_no_focus = True
-        elif pitch > 8 and gaze_avg < 60:
-            forced_no_focus = True
+        # --- Pitch rule with CRITICAL FIX ---
+        # OVERRIDE: If gaze and eyes are excellent, ignore head pose issues
+        # This fixes the bug where 96% gaze + 100% eyes = NO FOCUS due to head
+        if gaze_avg >= 85 and eye_open_score >= 90:
+            # User is clearly looking at screen with good eye metrics
+            # Head pose doesn't matter - probably just posture
+            forced_no_focus = False
+        else:
+            # Original pitch rules (only applied if gaze/eyes not perfect)
+            forced_no_focus = False
+            if pitch < -45:
+                forced_no_focus = True
+            elif pitch < -35 and gaze_avg < 40:
+                forced_no_focus = True
+            elif pitch > 15:
+                forced_no_focus = True
+            elif pitch > 8 and gaze_avg < 60:
+                forced_no_focus = True
 
         # --- Hysteresis thresholds ---
         HIGH_ON = 80
