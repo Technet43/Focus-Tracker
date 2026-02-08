@@ -390,6 +390,70 @@ def draw_status_pill(img, center, status, score):
                 thickness, cv2.LINE_AA)
 
 
+def draw_activity_badge(img, center, activity_mode, confidence):
+    """Draw activity mode indicator badge"""
+    cx, cy = center
+
+    # Pick icon, color, and text based on activity
+    if activity_mode == "WRITING_MODE":
+        icon = "📝"
+        text = "Writing"
+        bg_color = COLORS_BGR['accent_purple']
+    elif activity_mode == "READING_MODE":
+        icon = "📖"
+        text = "Reading"
+        bg_color = COLORS_BGR['accent_cyan']
+    elif activity_mode == "PHONE_CHECK":
+        icon = "📱"
+        text = "Phone"
+        bg_color = COLORS_BGR['accent_orange']
+    elif activity_mode == "SCREEN_FOCUS":
+        icon = "💻"
+        text = "Screen"
+        bg_color = COLORS_BGR['accent_blue']
+    else:
+        icon = "👀"
+        text = "Focus"
+        bg_color = COLORS_BGR['text_tertiary']
+
+    # Text style (smaller than status pill)
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 0.45
+    thickness = 1
+
+    # Combined text with icon
+    display_text = f"{icon} {text}"
+    (text_w, text_h), _ = cv2.getTextSize(display_text, font, font_scale, thickness)
+
+    # Compact padding
+    padding_x = 12
+    padding_y = 8
+
+    pill_w = text_w + padding_x * 2
+    pill_h = text_h + padding_y * 2
+
+    # Coordinates
+    pt1 = (cx - pill_w // 2, cy - pill_h // 2)
+    pt2 = (cx + pill_w // 2, cy + pill_h // 2)
+
+    # Rounded rect radius
+    radius = pill_h // 2
+
+    # Draw with transparency based on confidence
+    alpha = 0.85 if confidence > 70 else 0.6
+    overlay = img.copy()
+    draw_rounded_rect(overlay, pt1, pt2, bg_color, radius, -1)
+    cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0, img)
+
+    # Center text
+    text_x = cx - text_w // 2
+    text_y = cy + text_h // 2 - 1
+
+    cv2.putText(img, display_text, (text_x, text_y),
+                font, font_scale, (255, 255, 255),
+                thickness, cv2.LINE_AA)
+
+
 def draw_metric_card(img, pt1, pt2, icon, label, value, color, show_ring=False, ring_progress=0):
     """Draw a metric card with icon, label and value"""
     x1, y1 = pt1
@@ -511,6 +575,18 @@ def run_focus_tracker():
     last_yawn_time = 0
     YAWN_COOLDOWN = 1.5
 
+    # Activity Mode Detection (Writing vs Phone vs Screen Focus)
+    gaze_variance_history = deque(maxlen=30)  # 10 saniye @ 30 FPS
+    head_down_start_time = None
+    current_activity_mode = "SCREEN_FOCUS"
+    activity_mode_confidence = 0
+    writing_mode_duration = 0
+    reading_mode_duration = 0
+
+    # Multi-face tracking
+    primary_face_id = None
+    face_lock_landmarks = None
+
     # Landmarks
     LEFT_EYE_IRIS = [474, 475, 476, 477]
     RIGHT_EYE_IRIS = [469, 470, 471, 472]
@@ -558,6 +634,113 @@ def run_focus_tracker():
         vertical = calculate_distance(mouth_landmarks[0], mouth_landmarks[1])
         horizontal = calculate_distance(mouth_landmarks[2], mouth_landmarks[3])
         return vertical / horizontal
+
+    def calculate_gaze_variance(gaze_history):
+        """
+        Calculate variance of gaze scores over time window
+        High variance = Active eye movement (reading/writing)
+        Low variance = Static gaze (phone/distraction)
+        """
+        if len(gaze_history) < 5:
+            return 0.0
+        return float(np.var(gaze_history))
+
+    def detect_periodic_pattern(timestamps, min_period=2.0, max_period=8.0):
+        """
+        Detect if user is periodically looking up/down
+        (e.g., writing notes then checking screen)
+        """
+        if len(timestamps) < 4:
+            return False
+
+        # Calculate intervals between head movements
+        intervals = []
+        for i in range(1, len(timestamps)):
+            intervals.append(timestamps[i] - timestamps[i-1])
+
+        if not intervals:
+            return False
+
+        avg_interval = np.mean(intervals)
+        return min_period <= avg_interval <= max_period
+
+    def detect_activity_mode(head_pitch, gaze_variance, head_down_duration, blink_rate_recent):
+        """
+        Smart rule-based activity detection
+        Returns: (activity_mode, confidence_score, adjusted_focus_score)
+
+        Modes:
+        - SCREEN_FOCUS: Looking at screen (high focus)
+        - WRITING_MODE: Taking notes / writing (high focus)
+        - READING_MODE: Reading from paper (medium-high focus)
+        - PHONE_CHECK: Looking at phone (low focus)
+        - DISTRACTED: Looking away (low focus)
+        """
+
+        # TIER 1: DEFINITE CASES
+        if head_pitch > -20:
+            # Head up = definitely screen focus
+            return "SCREEN_FOCUS", 95, None
+
+        if head_pitch < -65:
+            # Extreme downward = definitely phone
+            return "PHONE_CHECK", 90, 15
+
+        # TIER 2: AMBIGUOUS ZONE (-20 to -65 degrees)
+        # This is where we differentiate writing vs phone
+
+        if -45 <= head_pitch <= -25:
+            # Prime writing/reading zone
+
+            # HIGH GAZE VARIANCE = Active reading/writing
+            if gaze_variance > 12:
+                if blink_rate_recent > 10:  # Blinks/minute
+                    # Active blinking + eye movement = Writing
+                    return "WRITING_MODE", 85, 85
+                else:
+                    # Less blinking = Reading
+                    return "READING_MODE", 80, 80
+
+            # MEDIUM VARIANCE with periodic patterns
+            elif 5 < gaze_variance <= 12:
+                if head_down_duration < 15:
+                    # Short bursts = note taking
+                    return "WRITING_MODE", 75, 80
+                else:
+                    # Longer = careful reading
+                    return "READING_MODE", 70, 75
+
+            # LOW VARIANCE = likely phone or static
+            else:
+                if head_down_duration > 20:
+                    # Long static stare = phone
+                    return "PHONE_CHECK", 70, 20
+                else:
+                    # Short look down = unclear
+                    return "LOW_FOCUS", 50, 50
+
+        # TIER 3: DEEPER DOWNWARD (-45 to -65)
+        elif -65 < head_pitch < -45:
+            # More likely phone, but could still be writing
+
+            if gaze_variance > 15:
+                # Very active eyes despite low head = intense writing
+                return "WRITING_MODE", 70, 75
+            elif gaze_variance > 8:
+                # Some movement = reading
+                return "READING_MODE", 60, 65
+            else:
+                # Static = phone
+                return "PHONE_CHECK", 80, 15
+
+        # DEFAULT: Unclear
+        return "LOW_FOCUS", 40, 50
+
+    def calculate_blink_rate(blink_count, elapsed_seconds):
+        """Calculate blinks per minute"""
+        if elapsed_seconds < 1:
+            return 0
+        return (blink_count / elapsed_seconds) * 60
 
     def get_head_pose_angles(landmarks, frame_width, frame_height):
         model_points = np.array([
@@ -870,6 +1053,8 @@ def run_focus_tracker():
         stats_right = [
             ("Distractions", session_stats["distractions"]),
             ("Yawns", session_stats["yawns"]),
+            ("Writing Time", session_stats.get("writing_time", "0:00:00")),
+            ("Reading Time", session_stats.get("reading_time", "0:00:00")),
         ]
         # Sol sütun: label x=0.06, value x=0.46  (ÇAKIŞMAYI BİTİREN NOKTA)
         y = 0.70
@@ -1142,11 +1327,41 @@ def run_focus_tracker():
                 else:
                     downward_look_count = 0
 
-                    # Gaze
-                    gaze_left, _, _ = calculate_gaze_score(face_landmarks, LEFT_EYE_IRIS, LEFT_EYE, w0, h0)
-                    gaze_right, _, _ = calculate_gaze_score(face_landmarks, RIGHT_EYE_IRIS, RIGHT_EYE, w0, h0)
+                # Gaze (move outside of downward_look_count else block)
+                gaze_left, _, _ = calculate_gaze_score(face_landmarks, LEFT_EYE_IRIS, LEFT_EYE, w0, h0)
+                gaze_right, _, _ = calculate_gaze_score(face_landmarks, RIGHT_EYE_IRIS, RIGHT_EYE, w0, h0)
+                gaze_avg = (gaze_left + gaze_right) / 2
 
-                    # Liveness detection - iris hareketini kontrol et
+                # Track gaze variance for activity detection
+                gaze_variance_history.append(gaze_avg)
+                current_gaze_variance = calculate_gaze_variance(list(gaze_variance_history))
+
+                # Track head down duration
+                if pitch_c < -25:
+                    if head_down_start_time is None:
+                        head_down_start_time = current_time
+                    head_down_duration = current_time - head_down_start_time
+                else:
+                    head_down_start_time = None
+                    head_down_duration = 0
+
+                # Calculate recent blink rate
+                recent_blink_rate = calculate_blink_rate(blink_count, elapsed_from_start)
+
+                # SMART ACTIVITY MODE DETECTION
+                activity_mode, activity_confidence, override_score = detect_activity_mode(
+                    pitch_c, current_gaze_variance, head_down_duration, recent_blink_rate
+                )
+                current_activity_mode = activity_mode
+                activity_mode_confidence = activity_confidence
+
+                # Track writing/reading duration for stats
+                if activity_mode == "WRITING_MODE":
+                    writing_mode_duration += elapsed_time
+                elif activity_mode == "READING_MODE":
+                    reading_mode_duration += elapsed_time
+
+                # Liveness detection - iris hareketini kontrol et
                     current_iris_positions = []
                     for iris_id in LEFT_EYE_IRIS + RIGHT_EYE_IRIS:
                         current_iris_positions.append((face_landmarks[iris_id].x, face_landmarks[iris_id].y))
@@ -1168,12 +1383,25 @@ def run_focus_tracker():
                             if current_time - last_movement_time > LIVENESS_TIMEOUT:
                                 is_live = False
 
-                    last_iris_positions = current_iris_positions
+                last_iris_positions = current_iris_positions
 
-                    # Focus analysis
+                # Focus analysis
                 current_state, total_score, sub_scores, warnings = analyze_focus(
                     gaze_left, gaze_right, head_score, ear_avg, yaw_c, pitch_c, roll_c
                 )
+
+                # Override score based on activity mode if applicable
+                if override_score is not None and activity_confidence > 60:
+                    # High confidence activity detection overrides standard focus calculation
+                    total_score = override_score
+
+                    # Adjust state based on new score
+                    if override_score >= 75:
+                        current_state = 'high_focus'
+                    elif override_score >= 40:
+                        current_state = 'low_focus'
+                    else:
+                        current_state = 'no_focus'
 
                 # Draw iris markers (subtle)
                 for iris_id in LEFT_EYE_IRIS + RIGHT_EYE_IRIS:
@@ -1227,8 +1455,12 @@ def run_focus_tracker():
             status_y = margin + int(35 * ui_scale)
             draw_status_pill(frame, (margin + panel_w // 2, status_y), smoothed_state, total_score)
 
+            # Activity mode badge (below status pill)
+            activity_y = status_y + int(35 * ui_scale)
+            draw_activity_badge(frame, (margin + panel_w // 2, activity_y), current_activity_mode, activity_mode_confidence)
+
             # Score display
-            score_y = margin + int(85 * ui_scale)
+            score_y = margin + int(100 * ui_scale)  # Adjusted for activity badge
             cv2.putText(frame, f"{int(total_score)}", (margin + int(20 * ui_scale), score_y + int(50 * ui_scale)),
                         cv2.FONT_HERSHEY_SIMPLEX, 2.2 * ui_scale, COLORS_BGR['text_primary'], 3, cv2.LINE_AA)
             cv2.putText(frame, "%", (margin + int(100 * ui_scale), score_y + int(25 * ui_scale)),
@@ -1397,7 +1629,9 @@ def run_focus_tracker():
         'distractions': distraction_events,
         'phone_checks': phone_check_count,
         'blinks': blink_count,
-        'yawns': yawn_count
+        'yawns': yawn_count,
+        'writing_time': format_time(writing_mode_duration),
+        'reading_time': format_time(reading_mode_duration)
     }
 
     png_path, pdf_path = generate_modern_report(
