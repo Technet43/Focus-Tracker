@@ -1362,26 +1362,26 @@ def run_focus_tracker():
                     reading_mode_duration += elapsed_time
 
                 # Liveness detection - iris hareketini kontrol et
-                    current_iris_positions = []
-                    for iris_id in LEFT_EYE_IRIS + RIGHT_EYE_IRIS:
-                        current_iris_positions.append((face_landmarks[iris_id].x, face_landmarks[iris_id].y))
+                current_iris_positions = []
+                for iris_id in LEFT_EYE_IRIS + RIGHT_EYE_IRIS:
+                    current_iris_positions.append((face_landmarks[iris_id].x, face_landmarks[iris_id].y))
 
-                    if last_iris_positions is not None:
-                        # Ortalama hareket miktarını hesapla
-                        total_movement = 0
-                        for i, (curr, prev) in enumerate(zip(current_iris_positions, last_iris_positions)):
-                            movement = math.sqrt((curr[0] - prev[0]) ** 2 + (curr[1] - prev[1]) ** 2)
-                            total_movement += movement
-                        avg_movement = total_movement / len(current_iris_positions)
+                if last_iris_positions is not None:
+                    # Ortalama hareket miktarını hesapla
+                    total_movement = 0
+                    for i, (curr, prev) in enumerate(zip(current_iris_positions, last_iris_positions)):
+                        movement = math.sqrt((curr[0] - prev[0]) ** 2 + (curr[1] - prev[1]) ** 2)
+                        total_movement += movement
+                    avg_movement = total_movement / len(current_iris_positions)
 
-                        # Hareket varsa zamanı güncelle
-                        if avg_movement > MOVEMENT_THRESHOLD:
-                            last_movement_time = current_time
-                            is_live = True
-                        else:
-                            # Hareketsizlik süresi kontrolü
-                            if current_time - last_movement_time > LIVENESS_TIMEOUT:
-                                is_live = False
+                    # Hareket varsa zamanı güncelle
+                    if avg_movement > MOVEMENT_THRESHOLD:
+                        last_movement_time = current_time
+                        is_live = True
+                    else:
+                        # Hareketsizlik süresi kontrolü
+                        if current_time - last_movement_time > LIVENESS_TIMEOUT:
+                            is_live = False
 
                 last_iris_positions = current_iris_positions
 
